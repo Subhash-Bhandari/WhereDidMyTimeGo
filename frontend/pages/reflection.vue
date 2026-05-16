@@ -41,6 +41,7 @@ async function save() {
       }
     })
     toast.success('Reflection saved')
+    await navigateTo('/')
   } catch {
     toast.error('Could not save reflection')
   } finally {

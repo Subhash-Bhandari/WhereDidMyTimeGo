@@ -73,21 +73,27 @@ onMounted(load)
     </div>
 
     <template v-else-if="summary">
-      <DashboardWeeklyChart v-if="weekly.length" :days="weekly" />
-      <UiCard v-for="leak in summary.timeLeaks" :key="leak.categoryId" class="p-4">
-        <p class="font-medium">Time leak: {{ leak.categoryName }}</p>
-        <p class="text-sm text-slate-600">
-          +{{ Math.round(leak.growthPercent) }}% vs last week ({{ leak.currentWeekMinutes }} min)
-        </p>
-      </UiCard>
-      <UiCard v-if="summary.bestHours.length" class="p-4">
-        <p class="font-medium">Best hours</p>
-        <p class="text-sm text-slate-600">
-          <span v-for="(h, i) in summary.bestHours" :key="h.hour">
-            {{ h.hour }}:00 ({{ h.totalMinutes }}m){{ i < summary.bestHours.length - 1 ? ', ' : '' }}
-          </span>
-        </p>
-      </UiCard>
+      <DashboardWeeklyChart
+        v-if="weekly.length"
+        :days="weekly"
+        :title="period === 'this' ? 'This week' : 'Last week'"
+      />
+      <template v-if="period === 'this'">
+        <UiCard v-for="leak in summary.timeLeaks" :key="leak.categoryId" class="p-4">
+          <p class="font-medium">Time leak: {{ leak.categoryName }}</p>
+          <p class="text-sm text-slate-600">
+            +{{ Math.round(leak.growthPercent) }}% vs last week ({{ leak.currentWeekMinutes }} min)
+          </p>
+        </UiCard>
+        <UiCard v-if="summary.bestHours.length" class="p-4">
+          <p class="font-medium">Best hours</p>
+          <p class="text-sm text-slate-600">
+            <span v-for="(h, i) in summary.bestHours" :key="h.hour">
+              {{ h.hour }}:00 ({{ h.totalMinutes }}m){{ i < summary.bestHours.length - 1 ? ', ' : '' }}
+            </span>
+          </p>
+        </UiCard>
+      </template>
       <UiCard v-if="categories.length" class="p-4">
         <table class="w-full text-sm">
           <thead>

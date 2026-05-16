@@ -7,9 +7,13 @@ import VChart from 'vue-echarts'
 
 use([BarChart, GridComponent, TooltipComponent, CanvasRenderer])
 
-const props = defineProps<{
-  days: { date: string; totalMinutes: number }[]
-}>()
+const props = withDefaults(
+  defineProps<{
+    days: { date: string; totalMinutes: number }[]
+    title?: string
+  }>(),
+  { title: 'This week' }
+)
 
 const option = computed(() => ({
   tooltip: { trigger: 'axis' },
@@ -31,7 +35,7 @@ const option = computed(() => ({
 
 <template>
   <UiCard class="p-4">
-    <h2 class="mb-2 font-medium">This week</h2>
+    <h2 class="mb-2 font-medium">{{ title }}</h2>
     <VChart class="h-56 w-full" :option="option" autoresize />
   </UiCard>
 </template>
