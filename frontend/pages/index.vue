@@ -43,6 +43,10 @@ async function onDelete(id: number) {
   await api(`/api/time-entries/${id}`, { method: 'DELETE' })
   await dashboard.refresh()
 }
+
+async function onCategoryPeriod(period: 'today' | 'week') {
+  await dashboard.setCategoryPeriod(period)
+}
 </script>
 
 <template>
@@ -54,15 +58,23 @@ async function onDelete(id: number) {
       </NuxtLink>
     </div>
 
-    <p v-if="dashboard.loading" class="text-sm text-slate-500">Loading…</p>
+    <DashboardSkeleton v-if="dashboard.loading && !dashboard.summary" />
 
     <template v-else>
       <DashboardTodaySummaryCard
         :summary="dashboard.summary"
         :entry-count="dashboard.todayEntries.length"
+        :productivity-score="dashboard.productivityScore"
       />
 
       <DashboardWeeklyChart v-if="dashboard.weekly.length" :days="dashboard.weekly" />
+
+      <DashboardCategoryDonut
+        :items="dashboard.categoryBreakdown"
+        :loading="dashboard.loading"
+        :period="dashboard.categoryPeriod"
+        @update:period="onCategoryPeriod"
+      />
 
       <UiCard class="p-4">
         <h2 class="mb-3 font-medium">Today</h2>

@@ -3,6 +3,7 @@ definePageMeta({ middleware: 'auth' })
 
 const { api } = useApi()
 const { timezone } = useTimezone()
+const toast = useToast()
 
 const moods = ['great', 'good', 'okay', 'low', 'bad'] as const
 const mood = ref<(typeof moods)[number]>('good')
@@ -10,7 +11,6 @@ const productivityScore = ref(5)
 const sleepHours = ref<number | null>(null)
 const notes = ref('')
 const loading = ref(false)
-const saved = ref(false)
 
 onMounted(async () => {
   const row = await api<{
@@ -29,7 +29,6 @@ onMounted(async () => {
 
 async function save() {
   loading.value = true
-  saved.value = false
   try {
     await api('/api/reflections/today', {
       method: 'PUT',
@@ -41,7 +40,9 @@ async function save() {
         notes: notes.value || null
       }
     })
-    saved.value = true
+    toast.success('Reflection saved')
+  } catch {
+    toast.error('Could not save reflection')
   } finally {
     loading.value = false
   }
@@ -59,8 +60,8 @@ async function save() {
             v-for="m in moods"
             :key="m"
             type="button"
-            class="min-h-[44px] rounded-full border px-4 text-sm capitalize"
-            :class="mood === m ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200'"
+            class="min-h-[44px] rounded-full border px-4 text-sm capitalize transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+            :class="mood === m ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 hover:bg-slate-50'"
             @click="mood = m"
           >
             {{ m }}
@@ -80,13 +81,13 @@ async function save() {
         <textarea
           v-model="notes"
           rows="3"
-          class="w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+          maxlength="2000"
+          class="w-full rounded-md border border-slate-200 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
         />
       </div>
       <UiButton size="lg" class="w-full" :disabled="loading" @click="save">
         Save reflection
       </UiButton>
-      <p v-if="saved" class="text-sm text-green-600">Saved!</p>
     </UiCard>
   </section>
 </template>

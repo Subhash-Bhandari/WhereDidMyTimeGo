@@ -64,8 +64,31 @@ npm run dev:api
 
 ## API Routes (backend)
 
+Auth (session cookie):
+
+- `POST /api/auth/register`, `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`
+
+Categories:
+
+- `GET /api/categories`, `POST /api/categories`, `PATCH /api/categories/{id}`, `DELETE /api/categories/{id}`
+
+Time entries:
+
+- `GET /api/time-entries/today`, `POST /api/time-entries`, `PATCH /api/time-entries/{id}`, `DELETE /api/time-entries/{id}`
+
+Analytics (`timezone` query param required):
+
+- `GET /api/analytics/summary`, `GET /api/analytics/weekly`, `GET /api/analytics/categories`
+
+Reflections:
+
+- `GET /api/reflections/today`, `PUT /api/reflections/today`
+
+Other:
+
 - `GET /api/health`
-- `POST /api/time-entries`
+
+Full contract: `specs/001-core-web-mvp/contracts/openapi.yaml`
 
 During development, the frontend proxies `/api/*` to the backend.
 

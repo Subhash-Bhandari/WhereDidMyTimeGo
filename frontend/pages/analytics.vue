@@ -65,7 +65,13 @@ onMounted(load)
         Last week
       </UiButton>
     </div>
-    <p v-if="loading" class="text-sm text-slate-500">Loading…</p>
+
+    <div v-if="loading" class="space-y-6">
+      <UiSkeleton class="h-56 w-full" />
+      <UiSkeleton class="h-24 w-full" />
+      <UiSkeleton class="h-48 w-full" />
+    </div>
+
     <template v-else-if="summary">
       <DashboardWeeklyChart v-if="weekly.length" :days="weekly" />
       <UiCard v-for="leak in summary.timeLeaks" :key="leak.categoryId" class="p-4">
@@ -82,7 +88,7 @@ onMounted(load)
           </span>
         </p>
       </UiCard>
-      <UiCard class="p-4">
+      <UiCard v-if="categories.length" class="p-4">
         <table class="w-full text-sm">
           <thead>
             <tr class="text-left text-slate-500">
@@ -99,6 +105,10 @@ onMounted(load)
             </tr>
           </tbody>
         </table>
+      </UiCard>
+      <UiCard v-else class="p-6 text-center text-sm text-slate-600">
+        No time logged for this period.
+        <NuxtLink to="/add" class="font-medium underline">Log time</NuxtLink>
       </UiCard>
     </template>
   </section>

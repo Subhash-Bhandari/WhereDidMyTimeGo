@@ -5,13 +5,14 @@ alwaysApply: true
 <!-- SPECKIT START -->
 For additional context about technologies, project structure, shell commands, and implementation phases for the **current feature**, read:
 
-- **Implementation plan**: `specs/001-core-web-mvp/plan.md`
-- **Feature spec**: `specs/001-core-web-mvp/spec.md`
-- **Data model**: `specs/001-core-web-mvp/data-model.md`
-- **API contracts**: `specs/001-core-web-mvp/contracts/openapi.yaml`
-- **Quickstart**: `specs/001-core-web-mvp/quickstart.md`
+- **Implementation plan**: `specs/002-phase-1-completion/plan.md`
+- **Feature spec**: `specs/002-phase-1-completion/spec.md`
+- **Data model**: `specs/002-phase-1-completion/data-model.md` (delta; base schema in `specs/001-core-web-mvp/data-model.md`)
+- **API contracts**: `specs/001-core-web-mvp/contracts/openapi.yaml` (unchanged; see `specs/002-phase-1-completion/contracts/README.md`)
+- **Quickstart**: `specs/002-phase-1-completion/quickstart.md`
 - **Constitution**: `CONSTITUTION.md`
 - **Phase detail**: `phases/phase-1-core-web-app.md`
+- **MVP baseline**: `specs/001-core-web-mvp/` (completed core)
 
 **Monorepo layout**: `frontend/` (Nuxt 3), `backend/` (Hono), `packages/db`, `packages/shared`.
 

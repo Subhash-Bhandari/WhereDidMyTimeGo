@@ -34,5 +34,9 @@ const deltaYesterday = computed(() => {
     <p v-if="productivityScore != null" class="mt-2 text-sm text-slate-600">
       Productivity: {{ productivityScore }}/10
     </p>
+    <p v-else class="mt-2 text-sm text-slate-500">
+      Reflection not logged yet.
+      <NuxtLink to="/reflection" class="font-medium text-slate-700 underline">Add reflection</NuxtLink>
+    </p>
   </UiCard>
 </template>

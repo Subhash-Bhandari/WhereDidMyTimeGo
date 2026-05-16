@@ -4,13 +4,13 @@ import { parseQuickEntry } from '@/utils/parseQuickEntry'
 definePageMeta({ middleware: 'auth' })
 
 const { api } = useApi()
+const toast = useToast()
 const categories = useCategoriesStore()
 const formRef = ref<{ setTitle: (v: string) => void; setDuration: (m: number) => void } | null>(null)
 
 const shorthand = ref('')
 const parsed = ref<{ title: string; durationMinutes: number } | null>(null)
 const loading = ref(false)
-const error = ref('')
 
 onMounted(() => categories.fetchCategories())
 
@@ -32,7 +32,6 @@ async function onSubmit(payload: {
   durationMinutes: number
 }) {
   loading.value = true
-  error.value = ''
   const end = new Date()
   const start = new Date(end.getTime() - payload.durationMinutes * 60_000)
   try {
@@ -48,7 +47,7 @@ async function onSubmit(payload: {
     })
     await navigateTo('/')
   } catch {
-    error.value = 'Could not save entry'
+    toast.error('Could not save entry')
   } finally {
     loading.value = false
   }
@@ -68,7 +67,6 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
 <template>
   <section class="mx-auto max-w-lg space-y-6">
     <h1 class="text-2xl font-semibold">Quick Add</h1>
-    <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
 
     <UiCard class="p-4">
       <p class="mb-2 text-sm text-slate-600">Shorthand (e.g. DSA 2h)</p>
