@@ -1,0 +1,26 @@
+---
+alwaysApply: true
+---
+
+<!-- SPECKIT START -->
+For additional context about technologies, project structure, shell commands, and implementation phases for the **current feature**, read:
+
+- **Implementation plan**: `specs/001-core-web-mvp/plan.md`
+- **Feature spec**: `specs/001-core-web-mvp/spec.md`
+- **Data model**: `specs/001-core-web-mvp/data-model.md`
+- **API contracts**: `specs/001-core-web-mvp/contracts/openapi.yaml`
+- **Quickstart**: `specs/001-core-web-mvp/quickstart.md`
+- **Constitution**: `CONSTITUTION.md`
+- **Phase detail**: `phases/phase-1-core-web-app.md`
+
+**Monorepo layout**: `frontend/` (Nuxt 3), `backend/` (Hono), `packages/db`, `packages/shared`.
+
+**Dev**: `npm run dev` from repo root (frontend :3000, backend :3001).
+
+**Clarified decisions (2026-05-15)**:
+- Calendar week Mon–Sun (local TZ) for analytics
+- Time leak: ≥60 min current week + >20% vs last week
+- Full time entry edit supported
+- Mood: great | good | okay | low | bad
+- Password min 8 characters
+<!-- SPECKIT END -->

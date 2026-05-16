@@ -1,0 +1,401 @@
+openapi: 3.1.0
+info:
+  title: WhereDidMyTimeGo API
+  version: 0.1.0
+  description: Phase 1 MVP — manual time tracking
+
+servers:
+  - url: http://localhost:3001
+    description: Local backend
+
+tags:
+  - name: health
+  - name: auth
+  - name: categories
+  - name: time-entries
+  - name: analytics
+  - name: reflections
+
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: session_id
+
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+        details:
+          type: object
+
+    User:
+      type: object
+      properties:
+        id: { type: integer }
+        email: { type: string, format: email }
+        name: { type: string }
+
+    Category:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        color: { type: string }
+        icon: { type: string }
+
+    TimeEntry:
+      type: object
+      properties:
+        id: { type: integer }
+        categoryId: { type: integer, nullable: true }
+        title: { type: string }
+        startedAt: { type: string, format: date-time }
+        endedAt: { type: string, format: date-time }
+        durationMinutes: { type: integer }
+
+    Reflection:
+      type: object
+      properties:
+        mood:
+          type: string
+          enum: [great, good, okay, low, bad]
+        productivityScore: { type: integer, minimum: 1, maximum: 10 }
+        notes: { type: string, nullable: true }
+        sleepHours: { type: integer, nullable: true, minimum: 0, maximum: 24 }
+        reflectionDate: { type: string, format: date }
+
+    TimeLeak:
+      type: object
+      required: [categoryId, categoryName, currentWeekMinutes, previousWeekMinutes, growthPercent]
+      properties:
+        categoryId: { type: integer }
+        categoryName: { type: string }
+        currentWeekMinutes: { type: integer, minimum: 60 }
+        previousWeekMinutes: { type: integer }
+        growthPercent: { type: number, description: Week-over-week growth; >20 triggers leak }
+
+    BestHour:
+      type: object
+      required: [hour, totalMinutes]
+      properties:
+        hour: { type: integer, minimum: 0, maximum: 23, description: Local hour 0-23 }
+        totalMinutes: { type: integer, minimum: 0 }
+
+    AnalyticsSummary:
+      type: object
+      required: [todayMinutes, yesterdayMinutes, weekMinutes, lastWeekMinutes, timeLeaks, bestHours]
+      properties:
+        todayMinutes: { type: integer, minimum: 0 }
+        yesterdayMinutes: { type: integer, minimum: 0 }
+        weekMinutes: { type: integer, minimum: 0 }
+        lastWeekMinutes: { type: integer, minimum: 0 }
+        timeLeaks:
+          type: array
+          items: { $ref: '#/components/schemas/TimeLeak' }
+          description: Categories with ≥60 min this week and >20% growth vs last week
+        bestHours:
+          type: array
+          items: { $ref: '#/components/schemas/BestHour' }
+          maxItems: 2
+          description: Top 2 local hours by logged minutes (current calendar week)
+
+paths:
+  /api/health:
+    get:
+      tags: [health]
+      summary: Health check
+      responses:
+        '200':
+          description: OK
+
+  /api/auth/register:
+    post:
+      tags: [auth]
+      summary: Register
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, name]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string, minLength: 8 }
+                name: { type: string, minLength: 1, maxLength: 120 }
+      responses:
+        '201':
+          description: User created, session set
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /api/auth/login:
+    post:
+      tags: [auth]
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string }
+                password: { type: string }
+      responses:
+        '200':
+          description: Session set
+        '401':
+          description: Invalid credentials
+
+  /api/auth/logout:
+    post:
+      tags: [auth]
+      security: [{ sessionCookie: [] }]
+      summary: Logout
+      responses:
+        '204':
+          description: Session cleared
+
+  /api/auth/me:
+    get:
+      tags: [auth]
+      security: [{ sessionCookie: [] }]
+      summary: Current user
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+        '401':
+          description: Not authenticated
+
+  /api/categories:
+    get:
+      tags: [categories]
+      security: [{ sessionCookie: [] }]
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Category' }
+    post:
+      tags: [categories]
+      security: [{ sessionCookie: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, color, icon]
+              properties:
+                name: { type: string, maxLength: 80 }
+                color: { type: string }
+                icon: { type: string }
+      responses:
+        '201':
+          description: Created
+
+  /api/categories/{id}:
+    patch:
+      tags: [categories]
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Updated
+    delete:
+      tags: [categories]
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '204':
+          description: Deleted (entries uncategorized)
+
+  /api/time-entries:
+    get:
+      tags: [time-entries]
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - name: from
+          in: query
+          schema: { type: string, format: date-time }
+        - name: to
+          in: query
+          schema: { type: string, format: date-time }
+        - name: categoryId
+          in: query
+          schema: { type: integer }
+        - name: timezone
+          in: query
+          schema: { type: string }
+          description: IANA timezone e.g. Asia/Kolkata
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  entries:
+                    type: array
+                    items: { $ref: '#/components/schemas/TimeEntry' }
+                  totalMinutes: { type: integer }
+    post:
+      tags: [time-entries]
+      security: [{ sessionCookie: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, startedAt, endedAt, durationMinutes]
+              properties:
+                title: { type: string }
+                categoryId: { type: integer, nullable: true }
+                startedAt: { type: string, format: date-time }
+                endedAt: { type: string, format: date-time }
+                durationMinutes: { type: integer, minimum: 1 }
+      responses:
+        '201':
+          description: Created
+
+  /api/time-entries/today:
+    get:
+      tags: [time-entries]
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - name: timezone
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Today's entries (local calendar day by started_at)
+
+  /api/time-entries/{id}:
+    patch:
+      tags: [time-entries]
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Updated
+    delete:
+      tags: [time-entries]
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '204':
+          description: Deleted
+
+  /api/analytics/weekly:
+    get:
+      tags: [analytics]
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - name: weekStart
+          in: query
+          schema: { type: string, format: date }
+          description: Monday of target week (YYYY-MM-DD local)
+        - name: timezone
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Seven daily totals Mon-Sun
+
+  /api/analytics/categories:
+    get:
+      tags: [analytics]
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - name: from
+          in: query
+          schema: { type: string, format: date }
+        - name: to
+          in: query
+          schema: { type: string, format: date }
+        - name: timezone
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Category minutes and percent
+
+  /api/analytics/summary:
+    get:
+      tags: [analytics]
+      security: [{ sessionCookie: [] }]
+      summary: Today/week totals, time leaks, and best hours (user-scoped)
+      parameters:
+        - name: timezone
+          in: query
+          required: true
+          schema: { type: string }
+          description: IANA timezone e.g. Asia/Kolkata
+      responses:
+        '200':
+          description: Summary including timeLeaks and bestHours (no separate insights route)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AnalyticsSummary' }
+        '401':
+          description: Not authenticated
+
+  /api/reflections/today:
+    get:
+      tags: [reflections]
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - name: timezone
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Reflection or null
+    put:
+      tags: [reflections]
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - name: timezone
+          in: query
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Reflection' }
+      responses:
+        '200':
+          description: Upserted
