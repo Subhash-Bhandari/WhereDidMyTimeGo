@@ -1,15 +1,33 @@
 <script setup lang="ts">
+import type { ReflectionStreak } from '@wheredidmytimego/shared'
+
 definePageMeta({ middleware: 'auth' })
 
 const dashboard = useDashboardStore()
 const categories = useCategoriesStore()
 const { api } = useApi()
+const { timezone } = useTimezone()
 const editOpen = ref(false)
 const editingEntry = ref<(typeof dashboard.todayEntries)[0] | null>(null)
+const streak = ref<ReflectionStreak | null>(null)
+const streakLoading = ref(true)
 
 onMounted(async () => {
-  await Promise.all([categories.fetchCategories(), dashboard.refresh()])
+  await Promise.all([categories.fetchCategories(), dashboard.refresh(), loadStreak()])
 })
+
+async function loadStreak() {
+  streakLoading.value = true
+  try {
+    streak.value = await api<ReflectionStreak>('/api/reflections/streak', {
+      query: { timezone: timezone.value }
+    })
+  } catch {
+    streak.value = null
+  } finally {
+    streakLoading.value = false
+  }
+}
 
 function formatMinutes(m: number) {
   const h = Math.floor(m / 60)
@@ -51,11 +69,14 @@ async function onCategoryPeriod(period: 'today' | 'week') {
 
 <template>
   <section class="space-y-6">
-    <div class="flex items-center justify-between">
+    <div class="flex flex-wrap items-center justify-between gap-3">
       <h1 class="text-2xl font-semibold">Dashboard</h1>
-      <NuxtLink to="/add">
-        <UiButton size="sm">Log time</UiButton>
-      </NuxtLink>
+      <div class="flex items-center gap-3">
+        <ReflectionStreakBadge :streak="streak" :loading="streakLoading" />
+        <NuxtLink to="/add">
+          <UiButton size="sm">Log time</UiButton>
+        </NuxtLink>
+      </div>
     </div>
 
     <DashboardSkeleton v-if="dashboard.loading && !dashboard.summary" />

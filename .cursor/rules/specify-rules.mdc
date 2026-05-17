@@ -5,23 +5,30 @@ alwaysApply: true
 <!-- SPECKIT START -->
 For additional context about technologies, project structure, shell commands, and implementation phases for the **current feature**, read:
 
-- **Implementation plan**: `specs/002-phase-1-completion/plan.md`
-- **Feature spec**: `specs/002-phase-1-completion/spec.md`
-- **Data model**: `specs/002-phase-1-completion/data-model.md` (delta; base schema in `specs/001-core-web-mvp/data-model.md`)
-- **API contracts**: `specs/001-core-web-mvp/contracts/openapi.yaml` (unchanged; see `specs/002-phase-1-completion/contracts/README.md`)
-- **Quickstart**: `specs/002-phase-1-completion/quickstart.md`
+- **Implementation plan**: `specs/003-ux-insight-enhancements/plan.md`
+- **Feature spec**: `specs/003-ux-insight-enhancements/spec.md`
+- **Data model**: `specs/003-ux-insight-enhancements/data-model.md` (delta; base schema in `specs/001-core-web-mvp/data-model.md`)
+- **API contracts**: `specs/001-core-web-mvp/contracts/openapi.yaml` + `specs/003-ux-insight-enhancements/contracts/openapi-phase-2.yaml` (see `specs/003-ux-insight-enhancements/contracts/README.md`)
+- **Quickstart**: `specs/003-ux-insight-enhancements/quickstart.md`
 - **Constitution**: `CONSTITUTION.md`
-- **Phase detail**: `phases/phase-1-core-web-app.md`
+- **Phase detail**: `phases/phase-2-ux-enhancements.md`
 - **MVP baseline**: `specs/001-core-web-mvp/` (completed core)
 
 **Monorepo layout**: `frontend/` (Nuxt 3), `backend/` (Hono), `packages/db`, `packages/shared`.
 
 **Dev**: `npm run dev` from repo root (frontend :3000, backend :3001).
 
-**Clarified decisions (2026-05-15)**:
+**Clarified decisions (2026-05-15, 001)**:
 - Calendar week Mon–Sun (local TZ) for analytics
 - Time leak: ≥60 min current week + >20% vs last week
 - Full time entry edit supported
 - Mood: great | good | okay | low | bad
 - Password min 8 characters
+
+**Clarified decisions (2026-05-17, 003)**:
+- Time leaks always calendar week vs prior week; best-hours/correlation use analytics date picker range
+- Correlation insight uses productivity score (1–10) only
+- Category keywords: registration seeds only; no keyword admin UI in Phase 2
+- Reflection streak: current resets to 0 after missed day; longest streak preserved
+- Evening reflection nudge: nice-to-have, not blocking
 <!-- SPECKIT END -->

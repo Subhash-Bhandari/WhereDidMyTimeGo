@@ -4,6 +4,7 @@ import { eq, and, gt } from 'drizzle-orm'
 import { db, users, sessions } from '@wheredidmytimego/db'
 import type { LoginInput, RegisterInput } from '@wheredidmytimego/shared'
 import { seedDefaultCategories } from './categorySeed'
+import { seedCategoryKeywords } from './categoryKeywordSeed'
 
 const SESSION_DAYS = 30
 const BCRYPT_ROUNDS = 10
@@ -39,6 +40,7 @@ export async function registerUser(input: RegisterInput) {
     })
 
   await seedDefaultCategories(user.id)
+  await seedCategoryKeywords(user.id)
   const session = await createSession(user.id)
   return { user, session }
 }

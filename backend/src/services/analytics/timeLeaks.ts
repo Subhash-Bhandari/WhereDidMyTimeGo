@@ -51,5 +51,9 @@ export async function computeTimeLeaks(userId: number, timezone: string) {
         growthPercent
       }
     })
-    .filter((r) => r.currentWeekMinutes >= 60 && r.growthPercent > 20)
+    .filter(
+      (r) => r.currentWeekMinutes >= 30 && r.currentWeekMinutes >= 60 && r.growthPercent > 20
+    )
+    .sort((a, b) => b.growthPercent - a.growthPercent)
+    .slice(0, 3)
 }

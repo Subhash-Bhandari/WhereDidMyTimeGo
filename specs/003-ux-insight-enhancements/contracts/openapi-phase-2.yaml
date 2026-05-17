@@ -1,0 +1,209 @@
+# Phase 2 API delta — merge paths into 001 openapi when implementing
+openapi: 3.1.0
+info:
+  title: WhereDidMyTimeGo API — Phase 2 delta
+  version: 0.2.0
+
+paths:
+  /api/parse-entry:
+    post:
+      tags: [parse]
+      summary: Parse quick-entry shorthand
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text]
+              properties:
+                text: { type: string, maxLength: 500 }
+      responses:
+        '200':
+          description: Parse result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParseEntryResult'
+        '401':
+          description: Unauthorized
+
+  /api/templates:
+    get:
+      tags: [templates]
+      summary: List entry templates
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/EntryTemplate'
+    post:
+      tags: [templates]
+      summary: Create entry template
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EntryTemplateCreate'
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EntryTemplate'
+
+  /api/templates/{id}:
+    delete:
+      tags: [templates]
+      summary: Delete entry template
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '204':
+          description: Deleted
+        '404':
+          description: Not found
+
+  /api/analytics/insights:
+    get:
+      tags: [analytics]
+      summary: Actionable insights (leaks, best hours, correlation)
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: timezone
+          in: query
+          required: true
+          schema: { type: string }
+        - name: from
+          in: query
+          required: true
+          schema: { type: string, format: date }
+        - name: to
+          in: query
+          required: true
+          schema: { type: string, format: date }
+        - name: categoryId
+          in: query
+          schema: { type: integer }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalyticsInsights'
+
+  /api/reflections/streak:
+    get:
+      tags: [reflections]
+      summary: Reflection streak stats
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: timezone
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReflectionStreak'
+
+components:
+  schemas:
+    ParseConfidence:
+      type: string
+      enum: [high, medium, low]
+
+    ParseEntryResult:
+      type: object
+      required: [title, durationMinutes, confidence]
+      properties:
+        title: { type: string }
+        durationMinutes: { type: integer, minimum: 1 }
+        categoryId: { type: integer, nullable: true }
+        confidence:
+          $ref: '#/components/schemas/ParseConfidence'
+
+    EntryTemplate:
+      type: object
+      properties:
+        id: { type: integer }
+        label: { type: string }
+        title: { type: string }
+        categoryId: { type: integer, nullable: true }
+        durationMinutes: { type: integer }
+
+    EntryTemplateCreate:
+      type: object
+      required: [label, title, durationMinutes]
+      properties:
+        label: { type: string, maxLength: 80 }
+        title: { type: string }
+        categoryId: { type: integer, nullable: true }
+        durationMinutes: { type: integer, minimum: 1 }
+
+    BestHourInsight:
+      type: object
+      properties:
+        hour: { type: integer }
+        endHour: { type: integer }
+        totalMinutes: { type: integer }
+        categoryName: { type: string, nullable: true }
+
+    CorrelationInsight:
+      type: object
+      properties:
+        categoryName: { type: string }
+        highMinutesThreshold: { type: integer }
+        avgProductivityHigh: { type: number }
+        avgProductivityLow: { type: number }
+        delta: { type: number }
+        sampleDays: { type: integer }
+
+    AnalyticsInsights:
+      type: object
+      required: [timeLeaks, bestHours, correlations]
+      properties:
+        timeLeaks:
+          type: array
+          maxItems: 3
+          items:
+            $ref: '../001-core-web-mvp/contracts/openapi.yaml#/components/schemas/TimeLeak'
+        bestHours:
+          type: array
+          maxItems: 3
+          items:
+            $ref: '#/components/schemas/BestHourInsight'
+        correlations:
+          type: array
+          items:
+            $ref: '#/components/schemas/CorrelationInsight'
+
+    ReflectionStreak:
+      type: object
+      required: [currentStreak, longestStreak, lastReflectionDate]
+      properties:
+        currentStreak: { type: integer, minimum: 0 }
+        longestStreak: { type: integer, minimum: 0 }
+        lastReflectionDate: { type: string, format: date, nullable: true }

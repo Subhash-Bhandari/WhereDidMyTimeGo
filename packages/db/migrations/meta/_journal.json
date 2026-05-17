@@ -8,6 +8,13 @@
       "when": 1778841671012,
       "tag": "0000_quick_manta",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1779000390750,
+      "tag": "0001_useful_arachne",
+      "breakpoints": true
     }
   ]
 }

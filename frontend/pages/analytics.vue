@@ -1,99 +1,117 @@
 <script setup lang="ts">
-import dayjs from 'dayjs'
-import utc from 'dayjs/plugin/utc'
-import timezonePlugin from 'dayjs/plugin/timezone'
-import isoWeek from 'dayjs/plugin/isoWeek'
-import type { AnalyticsSummary } from '@wheredidmytimego/shared'
-
-dayjs.extend(utc)
-dayjs.extend(timezonePlugin)
-dayjs.extend(isoWeek)
+import type { AnalyticsInsights, AnalyticsSummary } from '@wheredidmytimego/shared'
 
 definePageMeta({ middleware: 'auth' })
 
 const { api } = useApi()
 const { timezone } = useTimezone()
-const period = ref<'this' | 'last'>('this')
+const { preset, customFrom, customTo, bounds } = useAnalyticsRange()
+
 const summary = ref<AnalyticsSummary | null>(null)
+const insights = ref<AnalyticsInsights | null>(null)
 const weekly = ref<{ date: string; totalMinutes: number }[]>([])
 const categories = ref<
   { categoryName: string; totalMinutes: number; percent: number }[]
 >([])
 const loading = ref(false)
+const insightsError = ref(false)
+
+const rangeError = computed(() => {
+  if (preset.value !== 'custom') return false
+  const { from, to } = bounds()
+  return to < from
+})
 
 async function load() {
+  if (rangeError.value) return
   loading.value = true
+  insightsError.value = false
   const tz = timezone.value
-  const weekOffset = period.value === 'last' ? -1 : 0
-  const monday = dayjs().tz(tz).startOf('isoWeek').add(weekOffset, 'week')
-  const weekStart = monday.format('YYYY-MM-DD')
-  const from = weekStart
-  const to = monday.endOf('isoWeek').format('YYYY-MM-DD')
+  const { from, to } = bounds()
 
   try {
-    const [s, w, c] = await Promise.all([
+    const weekStart =
+      preset.value === 'last_week'
+        ? from
+        : preset.value === 'this_week'
+          ? from
+          : undefined
+
+    const [s, w, c, ins] = await Promise.all([
       api<AnalyticsSummary>('/api/analytics/summary', {
-        query: { timezone: tz, includeInsights: true }
+        query: { timezone: tz, includeInsights: false }
       }),
       api<{ days: { date: string; totalMinutes: number }[] }>('/api/analytics/weekly', {
-        query: { timezone: tz, weekStart }
+        query: {
+          timezone: tz,
+          weekStart: weekStart ?? from
+        }
       }),
       api<{
         items: { categoryName: string; totalMinutes: number; percent: number }[]
-      }>('/api/analytics/categories', { query: { timezone: tz, from, to } })
+      }>('/api/analytics/categories', { query: { timezone: tz, from, to } }),
+      api<AnalyticsInsights>('/api/analytics/insights', {
+        query: { timezone: tz, from, to }
+      })
     ])
     summary.value = s
     weekly.value = w.days
     categories.value = c.items
+    insights.value = ins
+  } catch {
+    insightsError.value = true
   } finally {
     loading.value = false
   }
 }
 
-watch(period, load)
+watch([preset, customFrom, customTo, timezone], load, { deep: true })
 onMounted(load)
 </script>
 
 <template>
   <section class="space-y-6">
     <h1 class="text-2xl font-semibold">Analytics</h1>
-    <div class="flex gap-2">
-      <UiButton :variant="period === 'this' ? 'default' : 'outline'" @click="period = 'this'">
-        This week
-      </UiButton>
-      <UiButton :variant="period === 'last' ? 'default' : 'outline'" @click="period = 'last'">
-        Last week
-      </UiButton>
-    </div>
+
+    <AnalyticsDateRangePicker
+      v-model:preset="preset"
+      v-model:custom-from="customFrom"
+      v-model:custom-to="customTo"
+    />
 
     <div v-if="loading" class="space-y-6">
       <UiSkeleton class="h-56 w-full" />
       <UiSkeleton class="h-24 w-full" />
+      <UiSkeleton class="h-24 w-full" />
       <UiSkeleton class="h-48 w-full" />
     </div>
 
-    <template v-else-if="summary">
+    <template v-else-if="!rangeError">
+      <p v-if="insightsError" class="text-sm text-red-600">
+        Could not load insights.
+        <button type="button" class="font-medium underline" @click="load">Retry</button>
+      </p>
+
       <DashboardWeeklyChart
         v-if="weekly.length"
         :days="weekly"
-        :title="period === 'this' ? 'This week' : 'Last week'"
+        :title="`Activity (${bounds().from} – ${bounds().to})`"
       />
-      <template v-if="period === 'this'">
-        <UiCard v-for="leak in summary.timeLeaks" :key="leak.categoryId" class="p-4">
-          <p class="font-medium">Time leak: {{ leak.categoryName }}</p>
-          <p class="text-sm text-slate-600">
-            +{{ Math.round(leak.growthPercent) }}% vs last week ({{ leak.currentWeekMinutes }} min)
-          </p>
-        </UiCard>
-        <UiCard v-if="summary.bestHours.length" class="p-4">
-          <p class="font-medium">Best hours</p>
-          <p class="text-sm text-slate-600">
-            <span v-for="(h, i) in summary.bestHours" :key="h.hour">
-              {{ h.hour }}:00 ({{ h.totalMinutes }}m){{ i < summary.bestHours.length - 1 ? ', ' : '' }}
-            </span>
-          </p>
-        </UiCard>
+
+      <template v-if="insights">
+        <AnalyticsTimeLeakCard
+          v-for="leak in insights.timeLeaks"
+          :key="leak.categoryId"
+          :leak="leak"
+        />
+        <AnalyticsBestHoursCard :hours="insights.bestHours" />
+        <AnalyticsCorrelationCard
+          v-for="(c, i) in insights.correlations"
+          :key="i"
+          :insight="c"
+        />
       </template>
+
       <UiCard v-if="categories.length" class="p-4">
         <table class="w-full text-sm">
           <thead>
