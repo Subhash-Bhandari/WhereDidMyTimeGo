@@ -3,7 +3,7 @@ import { db, timeEntries } from '@wheredidmytimego/db'
 import type { AnalyticsSummary } from '@wheredidmytimego/shared'
 import { localTodayRange, localWeekRange, localYesterdayRange } from '../../lib/dates'
 import { computeTimeLeaks } from './timeLeaks'
-import { computeBestHours } from './bestHours'
+import { computeBestHoursForWeek } from './bestHours'
 
 async function sumMinutes(
   userId: number,
@@ -50,6 +50,6 @@ export async function getAnalyticsSummary(
     weekMinutes,
     lastWeekMinutes,
     timeLeaks: includeInsights ? await computeTimeLeaks(userId, timezone) : [],
-    bestHours: includeInsights ? await computeBestHours(userId, timezone) : []
+    bestHours: includeInsights ? await computeBestHoursForWeek(userId, timezone) : []
   }
 }

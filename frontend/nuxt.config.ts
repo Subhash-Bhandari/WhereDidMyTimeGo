@@ -11,14 +11,20 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       appName: 'Where Did My Time Go',
-      apiBaseUrl: 'http://localhost:3001'
+      // Empty in dev: same-origin /api/* via nitro devProxy (no CORS). Set NUXT_PUBLIC_API_BASE_URL in prod.
+      apiBaseUrl: ''
     }
   },
-  nitro: {
-    devProxy: {
-      '/api': {
-        target: 'http://localhost:3001/api',
-        changeOrigin: true
+  routeRules: {
+    '/api/**': { proxy: 'http://127.0.0.1:3001/api/**' }
+  },
+  vite: {
+    server: {
+      proxy: {
+        '/api': {
+          target: 'http://127.0.0.1:3001',
+          changeOrigin: true
+        }
       }
     }
   },

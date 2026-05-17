@@ -8,6 +8,9 @@ import { categoryRoutes } from './routes/categories'
 import { timeEntryRoutes } from './routes/time-entries'
 import { analyticsRoutes } from './routes/analytics'
 import { reflectionRoutes } from './routes/reflections'
+import { parseEntryRoutes } from './routes/parse-entry'
+import { templateRoutes } from './routes/templates'
+import { analyticsInsightsRoutes } from './routes/analytics-insights'
 import type { AuthVariables } from './middleware/auth'
 
 const app = new Hono<{ Variables: AuthVariables }>()
@@ -36,6 +39,9 @@ app.route('/api/categories', categoryRoutes)
 app.route('/api/time-entries', timeEntryRoutes)
 app.route('/api/analytics', analyticsRoutes)
 app.route('/api/reflections', reflectionRoutes)
+app.route('/api/parse-entry', parseEntryRoutes)
+app.route('/api/templates', templateRoutes)
+app.route('/api/analytics/insights', analyticsInsightsRoutes)
 
 const port = Number(process.env.PORT || 3001)
 

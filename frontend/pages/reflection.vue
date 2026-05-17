@@ -1,9 +1,12 @@
 <script setup lang="ts">
+import type { ReflectionStreak } from '@wheredidmytimego/shared'
+
 definePageMeta({ middleware: 'auth' })
 
 const { api } = useApi()
 const { timezone } = useTimezone()
 const toast = useToast()
+const streak = ref<ReflectionStreak | null>(null)
 
 const moods = ['great', 'good', 'okay', 'low', 'bad'] as const
 const mood = ref<(typeof moods)[number]>('good')
@@ -13,6 +16,13 @@ const notes = ref('')
 const loading = ref(false)
 
 onMounted(async () => {
+  try {
+    streak.value = await api<ReflectionStreak>('/api/reflections/streak', {
+      query: { timezone: timezone.value }
+    })
+  } catch {
+    streak.value = null
+  }
   const row = await api<{
     mood: string
     productivityScore: number
@@ -52,7 +62,15 @@ async function save() {
 
 <template>
   <section class="mx-auto max-w-lg space-y-6">
-    <h1 class="text-2xl font-semibold">Daily reflection</h1>
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <h1 class="text-2xl font-semibold">Daily reflection</h1>
+      <ReflectionStreakBadge :streak="streak" />
+    </div>
+    <ReflectionCalendar
+      v-if="streak"
+      :reflection-dates="streak.reflectionDatesLast30"
+      :timezone="timezone"
+    />
     <UiCard class="space-y-4 p-4">
       <div>
         <UiLabel>Mood</UiLabel>

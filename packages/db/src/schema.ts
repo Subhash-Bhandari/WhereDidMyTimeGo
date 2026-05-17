@@ -44,6 +44,41 @@ export const categories = pgTable('categories', {
   icon: varchar('icon', { length: 40 }).notNull()
 })
 
+export const categoryKeywords = pgTable(
+  'category_keywords',
+  {
+    id: serial('id').primaryKey(),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    categoryId: integer('category_id')
+      .notNull()
+      .references(() => categories.id, { onDelete: 'cascade' }),
+    keyword: varchar('keyword', { length: 64 }).notNull()
+  },
+  (table) => [
+    uniqueIndex('category_keywords_user_keyword_idx').on(table.userId, table.keyword),
+    index('category_keywords_user_category_idx').on(table.userId, table.categoryId)
+  ]
+)
+
+export const entryTemplates = pgTable(
+  'entry_templates',
+  {
+    id: serial('id').primaryKey(),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    label: varchar('label', { length: 80 }).notNull(),
+    title: text('title').notNull(),
+    categoryId: integer('category_id').references(() => categories.id, {
+      onDelete: 'set null'
+    }),
+    durationMinutes: integer('duration_minutes').notNull()
+  },
+  (table) => [index('entry_templates_user_id_idx').on(table.userId)]
+)
+
 export const timeEntries = pgTable(
   'time_entries',
   {

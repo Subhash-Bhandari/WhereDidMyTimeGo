@@ -1,8 +1,8 @@
 openapi: 3.1.0
 info:
   title: WhereDidMyTimeGo API
-  version: 0.1.0
-  description: Phase 1 MVP — manual time tracking
+  version: 0.2.0
+  description: Phase 1 MVP + Phase 2 UX enhancements (parse, templates, insights, streak)
 
 servers:
   - url: http://localhost:3001
@@ -15,6 +15,8 @@ tags:
   - name: time-entries
   - name: analytics
   - name: reflections
+  - name: parse
+  - name: templates
 
 components:
   securitySchemes:
@@ -103,6 +105,82 @@ components:
           items: { $ref: '#/components/schemas/BestHour' }
           maxItems: 2
           description: Top 2 local hours by logged minutes (current calendar week)
+
+    ParseConfidence:
+      type: string
+      enum: [high, medium, low]
+
+    ParseEntryResult:
+      type: object
+      required: [title, confidence]
+      properties:
+        title: { type: string }
+        durationMinutes: { type: integer, minimum: 1, nullable: true }
+        categoryId: { type: integer, nullable: true }
+        confidence: { $ref: '#/components/schemas/ParseConfidence' }
+
+    EntryTemplate:
+      type: object
+      properties:
+        id: { type: integer }
+        label: { type: string }
+        title: { type: string }
+        categoryId: { type: integer, nullable: true }
+        durationMinutes: { type: integer }
+
+    EntryTemplateCreate:
+      type: object
+      required: [label, title, durationMinutes]
+      properties:
+        label: { type: string, maxLength: 80 }
+        title: { type: string }
+        categoryId: { type: integer, nullable: true }
+        durationMinutes: { type: integer, minimum: 1 }
+
+    BestHourInsight:
+      type: object
+      properties:
+        hour: { type: integer }
+        endHour: { type: integer }
+        totalMinutes: { type: integer }
+        categoryName: { type: string, nullable: true }
+
+    CorrelationInsight:
+      type: object
+      properties:
+        categoryName: { type: string }
+        highMinutesThreshold: { type: integer }
+        avgProductivityHigh: { type: number }
+        avgProductivityLow: { type: number }
+        delta: { type: number }
+        sampleDays: { type: integer }
+
+    AnalyticsInsights:
+      type: object
+      required: [timeLeaks, bestHours, correlations]
+      properties:
+        timeLeaks:
+          type: array
+          maxItems: 3
+          items: { $ref: '#/components/schemas/TimeLeak' }
+        bestHours:
+          type: array
+          maxItems: 3
+          items: { $ref: '#/components/schemas/BestHourInsight' }
+        correlations:
+          type: array
+          items: { $ref: '#/components/schemas/CorrelationInsight' }
+
+    ReflectionStreak:
+      type: object
+      required: [currentStreak, longestStreak, lastReflectionDate, reflectionDatesLast30]
+      properties:
+        currentStreak: { type: integer, minimum: 0 }
+        longestStreak: { type: integer, minimum: 0 }
+        lastReflectionDate: { type: string, format: date, nullable: true }
+        reflectionDatesLast30:
+          type: array
+          items: { type: string, format: date }
 
 paths:
   /api/health:
@@ -371,6 +449,116 @@ paths:
               schema: { $ref: '#/components/schemas/AnalyticsSummary' }
         '401':
           description: Not authenticated
+
+  /api/parse-entry:
+    post:
+      tags: [parse]
+      security: [{ sessionCookie: [] }]
+      summary: Parse quick-entry shorthand
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text]
+              properties:
+                text: { type: string, maxLength: 500 }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ParseEntryResult' }
+        '401':
+          description: Not authenticated
+
+  /api/templates:
+    get:
+      tags: [templates]
+      security: [{ sessionCookie: [] }]
+      summary: List entry templates
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/EntryTemplate' }
+    post:
+      tags: [templates]
+      security: [{ sessionCookie: [] }]
+      summary: Create entry template
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EntryTemplateCreate' }
+      responses:
+        '201':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EntryTemplate' }
+
+  /api/templates/{id}:
+    delete:
+      tags: [templates]
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '204':
+          description: Deleted
+        '404':
+          description: Not found
+
+  /api/analytics/insights:
+    get:
+      tags: [analytics]
+      security: [{ sessionCookie: [] }]
+      summary: Actionable insights (leaks, best hours, correlation)
+      parameters:
+        - name: timezone
+          in: query
+          required: true
+          schema: { type: string }
+        - name: from
+          in: query
+          required: true
+          schema: { type: string, format: date }
+        - name: to
+          in: query
+          required: true
+          schema: { type: string, format: date }
+        - name: categoryId
+          in: query
+          schema: { type: integer }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AnalyticsInsights' }
+
+  /api/reflections/streak:
+    get:
+      tags: [reflections]
+      security: [{ sessionCookie: [] }]
+      summary: Reflection streak stats
+      parameters:
+        - name: timezone
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReflectionStreak' }
 
   /api/reflections/today:
     get:

@@ -1,17 +1,57 @@
 <script setup lang="ts">
+import { Home, Plus, BarChart3, BookOpen, Settings } from 'lucide-vue-next'
+
 const auth = useAuth()
 const route = useRoute()
+const shortcutsOpen = ref(false)
+const { complete: completeOnboarding, shouldShow } = useOnboarding()
+const showOnboarding = ref(false)
+const { visible: nudgeVisible, evaluate: evaluateNudge, dismiss: dismissNudge } =
+  useEveningReflectionNudge()
+
+useKeyboardShortcuts([
+  { key: 'a', handler: () => navigateTo('/add') },
+  { key: 'd', handler: () => navigateTo('/') },
+  { key: '?', handler: () => { shortcutsOpen.value = true } }
+])
 
 const tabs = [
-  { to: '/', label: 'Home' },
-  { to: '/add', label: 'Add' },
-  { to: '/analytics', label: 'Stats' },
-  { to: '/reflection', label: 'Reflect' }
+  { to: '/', label: 'Home', icon: Home },
+  { to: '/add', label: 'Add', icon: Plus },
+  { to: '/analytics', label: 'Stats', icon: BarChart3 },
+  { to: '/reflection', label: 'Reflect', icon: BookOpen }
 ]
+
+function isActive(path: string) {
+  return route.path === path
+}
+
+onMounted(async () => {
+  await auth.fetchMe()
+  showOnboarding.value = shouldShow(!!auth.user, route.path)
+  if (auth.user) await evaluateNudge()
+})
+
+watch(
+  () => route.path,
+  async () => {
+    if (auth.user) await evaluateNudge()
+  }
+)
+
+function onOnboardingComplete() {
+  completeOnboarding()
+  showOnboarding.value = false
+}
 
 async function logout() {
   await auth.logout()
   await navigateTo('/login')
+}
+
+async function goReflect() {
+  dismissNudge()
+  await navigateTo('/reflection')
 }
 </script>
 
@@ -22,16 +62,22 @@ async function logout() {
         <NuxtLink to="/" class="font-semibold">WhereDidMyTimeGo</NuxtLink>
         <ul class="hidden items-center gap-4 text-sm md:flex">
           <li v-for="tab in tabs" :key="tab.to">
-            <NuxtLink :to="tab.to" class="hover:underline" :class="{ 'font-semibold': route.path === tab.to }">
+            <NuxtLink
+              :to="tab.to"
+              class="inline-flex items-center gap-1.5 hover:underline"
+              :class="{ 'font-semibold text-slate-900': isActive(tab.to) }"
+            >
+              <component :is="tab.icon" class="h-4 w-4" aria-hidden="true" />
               {{ tab.label }}
             </NuxtLink>
           </li>
           <li>
             <NuxtLink
               to="/settings"
-              class="hover:underline"
-              :class="{ 'font-semibold': route.path === '/settings' }"
+              class="inline-flex items-center gap-1.5 hover:underline"
+              :class="{ 'font-semibold text-slate-900': isActive('/settings') }"
             >
+              <Settings class="h-4 w-4" aria-hidden="true" />
               Categories
             </NuxtLink>
           </li>
@@ -39,15 +85,16 @@ async function logout() {
             <button type="button" class="text-slate-600 hover:underline" @click="logout">Sign out</button>
           </li>
         </ul>
-        <div class="flex items-center gap-3 md:hidden">
+        <motion class="flex items-center gap-3 md:hidden">
           <NuxtLink
             to="/settings"
-            class="text-sm text-slate-600 hover:underline"
-            :class="{ 'font-semibold text-slate-900': route.path === '/settings' }"
+            class="inline-flex items-center gap-1 text-sm text-slate-600 hover:underline"
+            :class="{ 'font-semibold text-slate-900': isActive('/settings') }"
           >
-            Categories
+            <Settings class="h-4 w-4" aria-hidden="true" />
+            <span class="sr-only">Categories</span>
           </NuxtLink>
-        </div>
+        </motion>
       </nav>
     </header>
 
@@ -56,18 +103,37 @@ async function logout() {
     </main>
 
     <UiToaster />
+    <CommonKeyboardShortcutsModal v-model="shortcutsOpen" />
+    <CommonOnboardingTour v-if="showOnboarding" @complete="onOnboardingComplete" />
+    <CommonEveningReflectionNudge
+      :open="nudgeVisible"
+      @dismiss="dismissNudge"
+      @go-reflect="goReflect"
+    />
 
     <nav
-      class="fixed bottom-0 left-0 right-0 z-40 flex border-t bg-white pb-[env(safe-area-inset-bottom)] md:hidden"
+      class="fixed bottom-0 left-0 right-0 z-40 flex border-t border-slate-200 bg-white/95 backdrop-blur pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1 md:hidden"
+      aria-label="Main navigation"
     >
       <NuxtLink
         v-for="tab in tabs"
         :key="tab.to"
         :to="tab.to"
-        class="flex min-h-[48px] flex-1 flex-col items-center justify-center text-xs"
-        :class="route.path === tab.to ? 'font-semibold text-slate-900' : 'text-slate-500'"
+        class="flex min-h-[52px] flex-1 flex-col items-center justify-center gap-0.5 text-[10px] transition-colors"
+        :class="
+          isActive(tab.to)
+            ? 'font-semibold text-slate-900'
+            : 'text-slate-500 hover:text-slate-700'
+        "
+        :aria-current="isActive(tab.to) ? 'page' : undefined"
       >
-        {{ tab.label }}
+        <component
+          :is="tab.icon"
+          class="h-5 w-5"
+          :class="isActive(tab.to) ? 'text-slate-900' : 'text-slate-400'"
+          aria-hidden="true"
+        />
+        <span>{{ tab.label }}</span>
       </NuxtLink>
     </nav>
   </div>

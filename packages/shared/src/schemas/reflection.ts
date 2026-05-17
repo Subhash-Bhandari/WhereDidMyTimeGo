@@ -9,4 +9,12 @@ export const reflectionSchema = z.object({
   sleepHours: z.number().int().min(0).max(24).nullable().optional()
 })
 
+export const reflectionStreakSchema = z.object({
+  currentStreak: z.number().int().min(0),
+  longestStreak: z.number().int().min(0),
+  lastReflectionDate: z.string().nullable(),
+  reflectionDatesLast30: z.array(z.string())
+})
+
 export type ReflectionInput = z.infer<typeof reflectionSchema>
+export type ReflectionStreak = z.infer<typeof reflectionStreakSchema>

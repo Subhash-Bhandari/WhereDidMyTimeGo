@@ -33,13 +33,41 @@ function onSubmit() {
   })
 }
 
+function setCategoryId(id: number | null) {
+  categoryId.value = id
+}
+
+function selectCategoryByIndex(index: number) {
+  const c = props.categories[index]
+  if (c) categoryId.value = c.id
+}
+
+function clearForm() {
+  title.value = ''
+  categoryId.value = null
+  durationMinutes.value = 60
+}
+
+function submitForm() {
+  onSubmit()
+}
+
 defineExpose({
   setTitle: (v: string) => {
     title.value = v
   },
   setDuration: (m: number) => {
     durationMinutes.value = m
-  }
+  },
+  setCategoryId,
+  selectCategoryByIndex,
+  clearForm,
+  submitForm,
+  getValues: () => ({
+    title: title.value.trim(),
+    categoryId: categoryId.value,
+    durationMinutes: durationMinutes.value
+  })
 })
 </script>
 

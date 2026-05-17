@@ -4,6 +4,7 @@ import { reflectionSchema } from '@wheredidmytimego/shared'
 import { requireAuth, type AuthVariables } from '../middleware/auth'
 import { parseJson, parseQuery } from '../lib/validate'
 import { getReflectionForToday, upsertReflectionToday } from '../services/reflections'
+import { getReflectionStreak } from '../services/reflections/streak'
 import { normalizeIanaTimezone } from '../lib/timezone'
 
 const timezoneQuery = z.object({
@@ -19,6 +20,13 @@ reflectionRoutes.get('/today', async (c) => {
   if (query instanceof Response) return query
   const row = await getReflectionForToday(c.get('userId'), query.timezone)
   return c.json(row)
+})
+
+reflectionRoutes.get('/streak', async (c) => {
+  const query = parseQuery(c, timezoneQuery)
+  if (query instanceof Response) return query
+  const streak = await getReflectionStreak(c.get('userId'), query.timezone)
+  return c.json(streak)
 })
 
 reflectionRoutes.put('/today', async (c) => {
