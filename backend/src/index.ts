@@ -20,7 +20,7 @@ app.use(
   cors({
     origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
     allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowHeaders: ['Content-Type'],
+    allowHeaders: ['Content-Type', 'Idempotency-Key'],
     credentials: true
   })
 )

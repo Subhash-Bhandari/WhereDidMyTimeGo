@@ -36,7 +36,33 @@ export const useAuthStore = defineStore('auth', () => {
     })
   }
 
-  async function logout() {
+  async function logout(options?: { skipQueueCheck?: boolean }) {
+    if (import.meta.client && !options?.skipQueueCheck) {
+      const queue = useOfflineQueue()
+      await queue.refresh()
+      const pending = queue.pendingCount + queue.failedCount
+      if (pending > 0) {
+        const syncNow = confirm(
+          `You have ${pending} offline ${pending === 1 ? 'entry' : 'entries'} not synced. Sync now before signing out? OK = try sync first, Cancel = continue sign-out options.`
+        )
+        if (syncNow) {
+          const { isOnlineForSync, probeReachability } = useOnlineStatus()
+          if (!isOnlineForSync.value) await probeReachability()
+          if (useOnlineStatus().isOnlineForSync.value) {
+            await queue.syncAll()
+            await queue.refresh()
+            if (queue.pendingCount + queue.failedCount === 0) {
+              return logout({ skipQueueCheck: true })
+            }
+          }
+        }
+        const discard = confirm(
+          'Discard unsynced entries and sign out? Your device copy will be cleared.'
+        )
+        if (!discard) return
+        await queue.clearQueue()
+      }
+    }
     await api<void>('/api/auth/logout', { method: 'POST' })
     user.value = null
   }

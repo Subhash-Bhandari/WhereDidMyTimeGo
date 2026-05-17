@@ -15,6 +15,13 @@
       "when": 1779000390750,
       "tag": "0001_useful_arachne",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1779014145985,
+      "tag": "0002_jazzy_doctor_octopus",
+      "breakpoints": true
     }
   ]
 }

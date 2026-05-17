@@ -15,6 +15,8 @@ const categories = ref<
 >([])
 const loading = ref(false)
 const insightsError = ref(false)
+const { canLoadFromServer, isOnlineForSync } = useOnlineStatus()
+const loadedOnce = ref(false)
 
 const rangeError = computed(() => {
   if (preset.value !== 'custom') return false
@@ -24,6 +26,10 @@ const rangeError = computed(() => {
 
 async function load() {
   if (rangeError.value) return
+  if (import.meta.client && !canLoadFromServer.value) {
+    loading.value = false
+    return
+  }
   loading.value = true
   insightsError.value = false
   const tz = timezone.value
@@ -58,6 +64,7 @@ async function load() {
     weekly.value = w.days
     categories.value = c.items
     insights.value = ins
+    loadedOnce.value = true
   } catch {
     insightsError.value = true
   } finally {
@@ -66,6 +73,9 @@ async function load() {
 }
 
 watch([preset, customFrom, customTo, timezone], load, { deep: true })
+watch(canLoadFromServer, (canLoad, prev) => {
+  if (canLoad && !prev) void load()
+})
 onMounted(load)
 </script>
 
@@ -78,6 +88,17 @@ onMounted(load)
       v-model:custom-from="customFrom"
       v-model:custom-to="customTo"
     />
+
+    <div
+      v-if="!isOnlineForSync && !loadedOnce"
+      class="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950"
+    >
+      You are offline. Analytics will appear when you are back online, or from your last cached visit.
+    </div>
+
+    <p v-else-if="!isOnlineForSync && loadedOnce" class="text-xs text-amber-800">
+      Offline — showing last loaded analytics for this device.
+    </p>
 
     <div v-if="loading" class="space-y-6">
       <UiSkeleton class="h-56 w-full" />

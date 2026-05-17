@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import type { AnalyticsSummary } from '@wheredidmytimego/shared'
 import { categoryRangeForPeriod } from '@/utils/dateRanges'
+import type { PendingStatus } from '~/lib/offline-db'
 
 export type TimeEntryRow = {
   id: number
@@ -10,6 +11,12 @@ export type TimeEntryRow = {
   startedAt: string
   endedAt: string
   durationMinutes: number
+}
+
+export type TodayEntry = TimeEntryRow & {
+  pending?: boolean
+  localId?: string
+  syncStatus?: PendingStatus
 }
 
 export type CategoryBreakdownItem = {
@@ -26,11 +33,37 @@ export const useDashboardStore = defineStore('dashboard', () => {
   const categoryBreakdown = ref<CategoryBreakdownItem[]>([])
   const categoryPeriod = ref<'today' | 'week'>('week')
   const productivityScore = ref<number | null>(null)
-  const todayEntries = ref<TimeEntryRow[]>([])
+  const serverTodayEntries = ref<TimeEntryRow[]>([])
   const loading = ref(false)
+  const loadedWhileOnline = ref(true)
 
   const { api } = useApi()
   const { timezone } = useTimezone()
+
+  const todayEntries = computed<TodayEntry[]>(() => {
+    const queue = useOfflineQueue()
+    const pendingRows: TodayEntry[] = queue
+      .listPending()
+      .map((e) => ({
+        id: 0,
+        userId: 0,
+        categoryId: e.payload.categoryId,
+        title: e.payload.title,
+        startedAt: e.payload.startedAt,
+        endedAt: e.payload.endedAt,
+        durationMinutes: e.payload.durationMinutes,
+        pending: true,
+        localId: e.localId,
+        syncStatus: e.status
+      }))
+    return [...pendingRows, ...serverTodayEntries.value].sort(
+      (a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime()
+    )
+  })
+
+  function mergePendingFromQueue() {
+    // Computed todayEntries reads queue state; no-op hook for callers after queue mutations
+  }
 
   async function fetchCategoryBreakdown(tz: string) {
     const { from, to } = categoryRangeForPeriod(tz, categoryPeriod.value)
@@ -54,6 +87,17 @@ export const useDashboardStore = defineStore('dashboard', () => {
     loading.value = true
     const tz = timezone.value
     const { from, to } = categoryRangeForPeriod(tz, categoryPeriod.value)
+
+    if (import.meta.client) {
+      const { canLoadFromServer } = useOnlineStatus()
+      if (!canLoadFromServer.value) {
+        loadedWhileOnline.value = false
+        loading.value = false
+        mergePendingFromQueue()
+        return
+      }
+    }
+
     try {
       const [s, w, c, entries, reflection] = await Promise.all([
         api<AnalyticsSummary>('/api/analytics/summary', {
@@ -73,10 +117,14 @@ export const useDashboardStore = defineStore('dashboard', () => {
       summary.value = s
       weekly.value = w.days
       categoryBreakdown.value = c.items
-      todayEntries.value = entries
+      serverTodayEntries.value = entries
       productivityScore.value = reflection?.productivityScore ?? null
+      loadedWhileOnline.value = true
+    } catch {
+      loadedWhileOnline.value = false
     } finally {
       loading.value = false
+      mergePendingFromQueue()
     }
   }
 
@@ -87,8 +135,11 @@ export const useDashboardStore = defineStore('dashboard', () => {
     categoryPeriod,
     productivityScore,
     todayEntries,
+    serverTodayEntries,
     loading,
+    loadedWhileOnline,
     refresh,
-    setCategoryPeriod
+    setCategoryPeriod,
+    mergePendingFromQueue
   }
 })

@@ -1,0 +1,78 @@
+# Phase 3 API delta — merge into 001 openapi when implementing
+openapi: 3.1.0
+info:
+  title: WhereDidMyTimeGo API — Phase 3 delta
+  version: 0.3.0
+
+paths:
+  /api/time-entries:
+    post:
+      tags: [time-entries]
+      summary: Create time entry (idempotent when Idempotency-Key provided)
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: false
+          description: Client-generated UUID (offline localId). Same key within 24h returns original 201 response without duplicate row.
+          schema:
+            type: string
+            maxLength: 64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TimeEntryCreate'
+      responses:
+        '201':
+          description: Created (or replayed idempotent response)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TimeEntry'
+        '400':
+          description: Validation error
+        '401':
+          description: Unauthorized — client keeps offline queue
+        '409':
+          description: Reserved — not used if idempotency handles duplicates
+
+  /api/health:
+    get:
+      tags: [health]
+      summary: Liveness probe for PWA reachability check
+      security: []
+      responses:
+        '200':
+          description: API reachable
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: ok }
+                  service: { type: string }
+
+components:
+  schemas:
+    TimeEntryCreate:
+      type: object
+      required: [title, startedAt, endedAt, durationMinutes]
+      properties:
+        title: { type: string, maxLength: 500 }
+        categoryId: { type: integer, nullable: true }
+        startedAt: { type: string, format: date-time }
+        endedAt: { type: string, format: date-time }
+        durationMinutes: { type: integer, minimum: 1 }
+    TimeEntry:
+      type: object
+      properties:
+        id: { type: integer }
+        userId: { type: integer }
+        categoryId: { type: integer, nullable: true }
+        title: { type: string }
+        startedAt: { type: string, format: date-time }
+        endedAt: { type: string, format: date-time }
+        durationMinutes: { type: integer }

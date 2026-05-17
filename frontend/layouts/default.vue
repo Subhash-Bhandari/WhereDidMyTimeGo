@@ -8,6 +8,8 @@ const { complete: completeOnboarding, shouldShow } = useOnboarding()
 const showOnboarding = ref(false)
 const { visible: nudgeVisible, evaluate: evaluateNudge, dismiss: dismissNudge } =
   useEveningReflectionNudge()
+const { incrementVisitCount } = usePwaVisit()
+const queue = useOfflineQueue()
 
 useKeyboardShortcuts([
   { key: 'a', handler: () => navigateTo('/add') },
@@ -27,7 +29,9 @@ function isActive(path: string) {
 }
 
 onMounted(async () => {
+  incrementVisitCount()
   await auth.fetchMe()
+  await queue.refresh()
   showOnboarding.value = shouldShow(!!auth.user, route.path)
   if (auth.user) await evaluateNudge()
 })
@@ -57,6 +61,7 @@ async function goReflect() {
 
 <template>
   <div class="min-h-screen bg-slate-50 pb-20 text-slate-900 md:pb-0">
+    <PwaOfflineIndicator />
     <header class="border-b bg-white">
       <nav class="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
         <NuxtLink to="/" class="font-semibold">WhereDidMyTimeGo</NuxtLink>
@@ -81,6 +86,14 @@ async function goReflect() {
               Categories
             </NuxtLink>
           </li>
+          <li v-if="queue.failedCount > 0">
+            <NuxtLink
+              to="/settings/sync"
+              class="inline-flex items-center gap-1.5 font-medium text-amber-800 hover:underline"
+            >
+              Sync ({{ queue.failedCount }})
+            </NuxtLink>
+          </li>
           <li>
             <button type="button" class="text-slate-600 hover:underline" @click="logout">Sign out</button>
           </li>
@@ -99,6 +112,8 @@ async function goReflect() {
     </header>
 
     <main class="mx-auto max-w-6xl px-4 py-6">
+      <PwaInstallBanner />
+      <PwaIosInstallHint />
       <slot />
     </main>
 

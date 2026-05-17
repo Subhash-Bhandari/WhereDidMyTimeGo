@@ -22,7 +22,8 @@ WhereDidMyTimeGo/
 | Frontend | Nuxt 3, Tailwind, shadcn-vue, Pinia, ECharts |
 | Backend | Hono, Zod |
 | Database | PostgreSQL, Drizzle ORM |
-| Future | PWA (`@vite-pwa/nuxt`), Capacitor |
+| PWA | `@vite-pwa/nuxt` — installable, offline logging, background sync |
+| Future | Capacitor (native wrappers) |
 
 ## Getting Started
 
@@ -91,6 +92,18 @@ Other:
 Full contract: `specs/001-core-web-mvp/contracts/openapi.yaml`
 
 During development, the frontend proxies `/api/*` to the backend.
+
+`POST /api/time-entries` accepts optional header `Idempotency-Key` (client offline `localId`) for duplicate-safe sync.
+
+## Offline behavior and limitations
+
+- **Install**: Add to home screen on Chromium (desktop/Android). On iOS Safari, use Share → Add to Home Screen.
+- **Offline logging**: Quick Add (`/add`) queues entries in IndexedDB when offline or when the API is unreachable. Pending entries show on the dashboard until synced.
+- **Sync**: When the browser is online and `GET /api/health` succeeds, queued entries upload automatically (also every 60s while the app is visible). Retries use exponential backoff (max 5 attempts); validation errors appear under **Settings → Sync issues**.
+- **Dashboard offline**: After at least one online visit, the dashboard may show a cached snapshot; otherwise an offline message with a link to Quick Add.
+- **Sign-out**: If the queue is not empty, you are prompted to sync or discard; signing out without syncing clears local queued entries (session expiry without sign-out keeps the queue for re-login).
+- **iOS**: Background Sync is limited; sync is best-effort while the app is open or foregrounded.
+- **Clock skew**: Changing the device clock while offline may group entries oddly; times are taken from the device at queue time.
 
 ## Roadmap
 

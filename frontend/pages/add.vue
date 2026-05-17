@@ -5,6 +5,8 @@ definePageMeta({ middleware: 'auth' })
 
 const { api } = useApi()
 const toast = useToast()
+const { isOnlineForSync } = useOnlineStatus()
+const offlineQueue = useOfflineQueue()
 const categories = useCategoriesStore()
 const router = useRouter()
 
@@ -121,18 +123,24 @@ async function onSubmit(payload: {
   loading.value = true
   const end = new Date()
   const start = new Date(end.getTime() - payload.durationMinutes * 60_000)
+  const body = {
+    title: payload.title,
+    categoryId: payload.categoryId,
+    startedAt: start.toISOString(),
+    endedAt: end.toISOString(),
+    durationMinutes: payload.durationMinutes
+  }
   try {
-    await api('/api/time-entries', {
-      method: 'POST',
-      body: {
-        title: payload.title,
-        categoryId: payload.categoryId,
-        startedAt: start.toISOString(),
-        endedAt: end.toISOString(),
-        durationMinutes: payload.durationMinutes
-      }
-    })
-    toast.success('Time logged')
+    if (isOnlineForSync.value) {
+      await api('/api/time-entries', {
+        method: 'POST',
+        body
+      })
+      toast.success('Time logged')
+    } else {
+      await offlineQueue.enqueueEntry(body)
+      toast.success('Saved offline — will sync when connected')
+    }
     if (clearAfterSubmit.value) {
       formRef.value?.clearForm()
       shorthand.value = ''

@@ -2,6 +2,7 @@ import {
   date,
   index,
   integer,
+  jsonb,
   pgTable,
   serial,
   text,
@@ -98,6 +99,24 @@ export const timeEntries = pgTable(
   (table) => [
     index('time_entries_user_started_idx').on(table.userId, table.startedAt),
     index('time_entries_user_category_idx').on(table.userId, table.categoryId)
+  ]
+)
+
+export const idempotencyKeys = pgTable(
+  'idempotency_keys',
+  {
+    id: serial('id').primaryKey(),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    key: varchar('key', { length: 64 }).notNull(),
+    responseBody: jsonb('response_body').notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull()
+  },
+  (table) => [
+    uniqueIndex('idempotency_keys_user_key_idx').on(table.userId, table.key),
+    index('idempotency_keys_expires_at_idx').on(table.expiresAt)
   ]
 )
 

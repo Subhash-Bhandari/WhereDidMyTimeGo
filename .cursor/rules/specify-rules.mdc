@@ -5,13 +5,13 @@ alwaysApply: true
 <!-- SPECKIT START -->
 For additional context about technologies, project structure, shell commands, and implementation phases for the **current feature**, read:
 
-- **Implementation plan**: `specs/003-ux-insight-enhancements/plan.md`
-- **Feature spec**: `specs/003-ux-insight-enhancements/spec.md`
-- **Data model**: `specs/003-ux-insight-enhancements/data-model.md` (delta; base schema in `specs/001-core-web-mvp/data-model.md`)
-- **API contracts**: `specs/001-core-web-mvp/contracts/openapi.yaml` + `specs/003-ux-insight-enhancements/contracts/openapi-phase-2.yaml` (see `specs/003-ux-insight-enhancements/contracts/README.md`)
-- **Quickstart**: `specs/003-ux-insight-enhancements/quickstart.md`
+- **Implementation plan**: `specs/004-pwa-offline-logging/plan.md`
+- **Feature spec**: `specs/004-pwa-offline-logging/spec.md`
+- **Data model**: `specs/004-pwa-offline-logging/data-model.md` (delta; base schema in `specs/001-core-web-mvp/data-model.md`)
+- **API contracts**: `specs/001-core-web-mvp/contracts/openapi.yaml` + `specs/004-pwa-offline-logging/contracts/openapi-phase-3.yaml` (see `specs/004-pwa-offline-logging/contracts/README.md`)
+- **Quickstart**: `specs/004-pwa-offline-logging/quickstart.md`
 - **Constitution**: `CONSTITUTION.md`
-- **Phase detail**: `phases/phase-2-ux-enhancements.md`
+- **Phase detail**: `phases/phase-3-pwa.md`
 - **MVP baseline**: `specs/001-core-web-mvp/` (completed core)
 
 **Monorepo layout**: `frontend/` (Nuxt 3), `backend/` (Hono), `packages/db`, `packages/shared`.
@@ -31,4 +31,13 @@ For additional context about technologies, project structure, shell commands, an
 - Category keywords: registration seeds only; no keyword admin UI in Phase 2
 - Reflection streak: current resets to 0 after missed day; longest streak preserved
 - Evening reflection nudge: nice-to-have, not blocking
+
+**Git (Spec Kit extension)**: On `/speckit-specify`, run `speckit.git.feature` first (`.specify/extensions.yml` → `hooks.before_specify`, `auto_execute_hooks: true`) to create/switch feature branches. Branch name is independent of `specs/NNN-name/` (see `.specify/feature.json`).
+
+**Clarified decisions (2026-05-17, 004)**:
+- Offline dashboard: best-effort cache (last snapshot or offline message)
+- Pending entries show on dashboard/list immediately until synced
+- Online for sync: `navigator.onLine` + `GET /api/health` reachability check
+- Sync issues: dedicated `/settings/sync` page
+- Sign-out: prompt if queue non-empty; clear device queue if sign-out without sync (session expiry keeps queue)
 <!-- SPECKIT END -->

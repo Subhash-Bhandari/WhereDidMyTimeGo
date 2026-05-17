@@ -57,9 +57,14 @@ async function onDelete(id: number) {
 
 <template>
   <section class="mx-auto max-w-lg space-y-6">
-    <div class="flex items-center justify-between">
+    <div class="flex flex-wrap items-center justify-between gap-3">
       <h1 class="text-2xl font-semibold">Categories</h1>
-      <UiButton v-if="!showForm" size="sm" @click="startCreate">New category</UiButton>
+      <div class="flex gap-2">
+        <NuxtLink to="/settings/sync">
+          <UiButton size="sm" variant="outline">Sync issues</UiButton>
+        </NuxtLink>
+        <UiButton v-if="!showForm" size="sm" @click="startCreate">New category</UiButton>
+      </div>
     </div>
 
     <CategoriesCategoryList
